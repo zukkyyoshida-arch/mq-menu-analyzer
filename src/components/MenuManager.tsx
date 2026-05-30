@@ -78,49 +78,86 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
     try {
       const generated = await generateRecipeWithAI(aiMenuName, apiKey);
       if (generated) {
-        // 新しい材料を既存のものとマージ
-        const newIngs = [...ingredients];
-        const addedRecipeItems: RecipeItem[] = [];
-
-        for (const aiIng of generated.ingredients) {
-          // 同じ名前の材料がすでにあればそれを使う
-          let existing = newIngs.find(i => i.name === aiIng.name);
-          if (!existing) {
-            existing = {
-              id: Math.random().toString(36).substring(2, 9),
-              name: aiIng.name,
-              unit: aiIng.unit,
-              cost: aiIng.cost
-            };
-            newIngs.push(existing);
-          }
-        }
-
-        // レシピの構築
-        for (const item of generated.recipe) {
-          const ing = newIngs.find(i => i.name === item.ingredientName);
-          if (ing) {
-            addedRecipeItems.push({ ingredientId: ing.id, amount: item.amount });
-          }
-        }
-
-        const newMenuItem: Menu = {
-          id: Math.random().toString(36).substring(2, 9),
-          name: aiMenuName,
-          price: generated.suggestedPrice,
-          recipe: addedRecipeItems
-        };
-
-        setIngredients(newIngs);
-        setMenus([...menus, newMenuItem]);
-        setAiMenuName('');
-        alert('AIによるレシピの生成と登録が完了しました！');
+        applyGeneratedRecipe(aiMenuName, generated);
       }
     } catch (err) {
       alert('レシピの生成に失敗しました。APIキーが正しいか確認してください。');
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  const handleGenerateFromLoss = async () => {
+    const apiKey = localStorage.getItem('GEMINI_API_KEY');
+    if (!apiKey) {
+      alert('「設定」画面からGemini APIキーを登録してください。');
+      return;
+    }
+
+    // 在庫が多い順にトップ5を取得 (余剰食材)
+    const surplusIngredients = [...ingredients]
+      .sort((a, b) => ((b.stock || 0) - (b.lowStockThreshold || 0)) - ((a.stock || 0) - (a.lowStockThreshold || 0)))
+      .slice(0, 5)
+
+    if (surplusIngredients.length === 0 || (surplusIngredients[0].stock || 0) === 0) {
+      alert('現在、余剰在庫として提案できる材料がありません。');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // lib/ai.ts の generateMenuFromLoss は GeneratedRecipe & { menuName: string } を返す
+      const { generateMenuFromLoss } = await import('../lib/ai');
+      const generated = await generateMenuFromLoss(surplusIngredients, apiKey);
+      if (generated) {
+        // AIが提案した名前を使用する
+        const name = (generated as any).menuName || 'ロス活用限定メニュー';
+        applyGeneratedRecipe(name, generated);
+      }
+    } catch (err) {
+      alert('レシピの生成に失敗しました。APIキーが正しいか確認してください。');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  const applyGeneratedRecipe = (menuName: string, generated: import('../lib/ai').GeneratedRecipe) => {
+    const newIngs = [...ingredients];
+    const addedRecipeItems: RecipeItem[] = [];
+
+    for (const aiIng of generated.ingredients) {
+      // 同じ名前の材料がすでにあればそれを使う
+      let existing = newIngs.find(i => i.name === aiIng.name);
+      if (!existing) {
+        existing = {
+          id: Math.random().toString(36).substring(2, 9),
+          name: aiIng.name,
+          unit: aiIng.unit,
+          cost: aiIng.cost
+        };
+        newIngs.push(existing);
+      }
+    }
+
+    // レシピの構築
+    for (const item of generated.recipe) {
+      const ing = newIngs.find(i => i.name === item.ingredientName);
+      if (ing) {
+        addedRecipeItems.push({ ingredientId: ing.id, amount: item.amount });
+      }
+    }
+
+    const newMenuItem: Menu = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: menuName,
+      price: generated.suggestedPrice,
+      recipe: addedRecipeItems
+    };
+
+    setIngredients(newIngs);
+    setMenus([...menus, newMenuItem]);
+    setAiMenuName('');
+    alert('AIによるレシピの生成と登録が完了しました！');
   }
 
   const toggleExpand = (menu: Menu) => {
@@ -283,29 +320,42 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
             </div>
             <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-blue-200">
               <Sparkles size={20} className="text-blue-400" />
-              AI レシピ自動考案
+              AI レシピ自動考案 ＆ 余剰在庫の活用
             </h3>
             <p className="text-sm text-slate-300 mb-4">
-              メニュー名を入力するだけで、AIが一般的な材料構成と原価の目安を自動で割り出し、マスターに登録します。
+              メニュー名を入力するか、または現在の余剰在庫（ロス）を活用した新メニューをAIに考案させます。
             </p>
-            <div className="flex gap-4 items-end max-w-2xl relative z-10">
-              <div className="flex-1">
-                <input 
-                  type="text" 
-                  value={aiMenuName} 
-                  onChange={e => setAiMenuName(e.target.value)} 
-                  className="w-full bg-[#0f172a] border border-blue-500/30 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400 shadow-inner" 
-                  placeholder="例: スパイスカレー、マルゲリータピザ..." 
-                  disabled={isGenerating}
-                />
+            <div className="flex flex-col md:flex-row gap-4 relative z-10">
+              <div className="flex flex-1 gap-4 items-end">
+                <div className="flex-1">
+                  <input 
+                    type="text" 
+                    value={aiMenuName} 
+                    onChange={e => setAiMenuName(e.target.value)} 
+                    className="w-full bg-[#0f172a] border border-blue-500/30 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-400 shadow-inner" 
+                    placeholder="例: スパイスカレー、マルゲリータピザ..." 
+                    disabled={isGenerating}
+                  />
+                </div>
+                <button 
+                  onClick={handleAIGenerate} 
+                  disabled={isGenerating || !aiMenuName}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-400 text-white px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg whitespace-nowrap"
+                >
+                  {isGenerating && aiMenuName ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                  AIに考えさせる
+                </button>
               </div>
+              
+              <div className="hidden md:block w-px bg-slate-700 mx-2 my-2"></div>
+              
               <button 
-                onClick={handleAIGenerate} 
-                disabled={isGenerating || !aiMenuName}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-400 text-white px-6 py-3 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg"
+                onClick={handleGenerateFromLoss} 
+                disabled={isGenerating}
+                className="bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 disabled:opacity-50 text-purple-300 px-6 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg whitespace-nowrap"
               >
-                {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                {isGenerating ? 'AIが考案中...' : 'AIに考えさせる'}
+                {isGenerating && !aiMenuName ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                ♻️ 余剰在庫から考案
               </button>
             </div>
           </div>

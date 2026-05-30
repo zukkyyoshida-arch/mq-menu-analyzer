@@ -12,15 +12,18 @@ import {
 } from 'recharts'
 import type { CalculatedMenuData } from '../types'
 import { Sparkles, Loader2, BotMessageSquare } from 'lucide-react'
-import { getBusinessAdvice } from '../lib/ai'
+import { getBusinessAdvice, getLossPreventionAdvice } from '../lib/ai'
 
 interface DashboardProps {
   data: CalculatedMenuData[];
+  ingredients: import('../types').Ingredient[];
 }
 
-export function Dashboard({ data }: DashboardProps) {
+export function Dashboard({ data, ingredients }: DashboardProps) {
   const [advice, setAdvice] = useState<string | null>(null)
+  const [lossAdvice, setLossAdvice] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isGeneratingLoss, setIsGeneratingLoss] = useState(false)
 
   // 廃棄数も考慮したコスト計算（原価×販売数 ＋ 原価×廃棄数）
   const totalSales = data.reduce((sum, item) => sum + (item.price * item.sales), 0)
@@ -47,6 +50,24 @@ export function Dashboard({ data }: DashboardProps) {
       alert('アドバイスの生成に失敗しました。APIキーが正しいか確認してください。')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleGetLossAdvice = async () => {
+    const apiKey = localStorage.getItem('GEMINI_API_KEY')
+    if (!apiKey) {
+      alert('「設定」画面からGemini APIキーを登録してください。')
+      return
+    }
+
+    setIsGeneratingLoss(true)
+    try {
+      const result = await getLossPreventionAdvice(data, ingredients, apiKey)
+      setLossAdvice(result)
+    } catch (err) {
+      alert('アドバイスの生成に失敗しました。APIキーが正しいか確認してください。')
+    } finally {
+      setIsGeneratingLoss(false)
     }
   }
 
@@ -97,7 +118,36 @@ export function Dashboard({ data }: DashboardProps) {
         </div>
       )}
 
+      {/* Loss Prevention Advice Area */}
+      {lossAdvice && (
+        <div className="bg-gradient-to-br from-[#1e293b] to-red-900/20 rounded-xl p-8 border border-red-500/30 shadow-2xl relative overflow-hidden animate-in slide-in-from-top-4 duration-500 mt-4">
+          <div className="absolute top-0 right-0 p-6 opacity-5">
+            <BotMessageSquare size={120} />
+          </div>
+          <div className="flex items-center gap-3 mb-6 relative z-10">
+            <div className="p-3 bg-red-500/20 rounded-lg">
+              <Sparkles className="text-red-400" size={24} />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-100">AI ロス対策・余剰在庫アドバイス</h3>
+          </div>
+          <div className="relative z-10 text-sm">
+            {renderAdvice(lossAdvice)}
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
+      <div className="flex justify-between items-end mb-2">
+        <h3 className="text-xl font-semibold">全体の状況</h3>
+        <button 
+          onClick={handleGetLossAdvice}
+          disabled={isGeneratingLoss || data.length === 0}
+          className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
+        >
+          {isGeneratingLoss ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          {isGeneratingLoss ? 'AIが対策を考案中...' : 'ロス削減のAIアドバイスをもらう'}
+        </button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <SummaryCard title="総売上" value={`¥${totalSales.toLocaleString()}`} />
         <SummaryCard title="総原価 (ロス含)" value={`¥${totalCost.toLocaleString()}`} />

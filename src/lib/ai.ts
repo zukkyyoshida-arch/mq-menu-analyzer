@@ -73,3 +73,99 @@ ${dataStr}
     throw error;
   }
 }
+
+export async function generateMenuFromLoss(ingredients: Ingredient[], apiKey: string): Promise<GeneratedRecipe | null> {
+  if (!apiKey) throw new Error('Gemini API key is required');
+  
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  // 材料を渡し、AIに考えさせる
+  const ingredientsStr = ingredients.map(i => `${i.name} (在庫: ${i.stock || 0}${i.unit}, 原価: ¥${i.cost})`).join('\n');
+
+  const prompt = `あなたは飲食店のメニュー開発コンサルタントです。
+現在、以下の食材が余り気味（在庫過多またはロス予備軍）になっています。
+これらの食材のうち、いくつかを効果的に組み合わせて作れる、「原価率が低く、お客様に喜ばれる新メニュー（まかないや日替わりメニュー）」を1つ考案してください。
+
+【余剰食材リスト】
+${ingredientsStr}
+
+以下のJSONフォーマットのテキストのみを出力してください（Markdownのバッククォートなどの装飾は一切含めないでください）。
+{
+  "menuName": "考案した新メニュー名",
+  "ingredients": [
+    { "name": "材料名(リストにない新規の追加材料があれば記述)", "unit": "単位", "cost": 仕入単価 }
+  ],
+  "recipe": [
+    { "ingredientName": "使用する材料名(リストにあるもの、または上記ingredientsで追加したもの)", "amount": 1食あたりの使用量 }
+  ],
+  "suggestedPrice": 提案する販売価格(日本円)
+}`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    // 既存の GeneratedRecipe 型に合わせるために、パース結果に menuName が含まれているが、
+    // 呼び出し側でそれを取り出す必要がある。ここでは ANY を返してキャストする形にするか、
+    // 新しい型を返す。簡易的に ANY にキャストしてからオブジェクトを構築する。
+    const parsed = JSON.parse(text) as any;
+    return {
+      ingredients: parsed.ingredients,
+      recipe: parsed.recipe,
+      suggestedPrice: parsed.suggestedPrice,
+      // 便宜上、menuName を連携するためのハック
+      ...parsed
+    } as GeneratedRecipe & { menuName: string };
+  } catch (error) {
+    console.error('Failed to generate menu from loss:', error);
+    throw error;
+  }
+}
+
+export async function getLossPreventionAdvice(menuData: CalculatedMenuData[], ingredients: Ingredient[], apiKey: string): Promise<string> {
+  if (!apiKey) throw new Error('Gemini API key is required');
+  
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  const lossMenus = menuData.filter(m => (m.waste || 0) > 0).map(m => ({
+    name: m.name,
+    wasteQty: m.waste,
+    wasteLoss: (m.waste || 0) * m.cost
+  }));
+  
+  const surplusIngredients = ingredients
+    .filter(i => (i.stock || 0) > (i.lowStockThreshold || 0))
+    .map(i => ({
+      name: i.name,
+      excessQty: (i.stock || 0) - (i.lowStockThreshold || 0),
+      excessValue: ((i.stock || 0) - (i.lowStockThreshold || 0)) * i.cost
+    }));
+
+  const prompt = `あなたは優秀な飲食店コンサルタントです。
+以下のデータから、飲食店の最大の敵である「食品ロス（廃棄）」と「余剰在庫」を削減するための具体的な改善アドバイスをMarkdown形式で提案してください。
+
+【廃棄が発生しているメニューデータ】
+${JSON.stringify(lossMenus, null, 2)}
+
+【適正在庫（発注点）を上回っている余剰在庫データ】
+${JSON.stringify(surplusIngredients, null, 2)}
+
+以下の点に触れて、現場のスタッフや店長が明日からすぐ実行できる対策を提示してください：
+1. 廃棄が多いメニューへの対策（仕込み量の見直し、受注後調理への変更、提供方法の改善など）
+2. 余っている在庫の消化方法（他メニューへの流用、セット化など）
+3. 発注業務の改善アドバイス（発注点の見直し、適正発注サイクルの提案）
+
+必ずMarkdown形式（見出しや箇条書きを活用）で出力してください。`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Failed to generate loss prevention advice:', error);
+    throw error;
+  }
+}

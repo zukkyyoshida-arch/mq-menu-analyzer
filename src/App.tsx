@@ -142,7 +142,7 @@ export default function App() {
         {/* Decorator background */}
         <div className="absolute top-0 left-0 w-full h-96 bg-blue-900/10 rounded-full blur-3xl -z-10 pointer-events-none transform -translate-y-1/2"></div>
         
-        {activeTab === 'dashboard' && <Dashboard data={calculatedMenuData} />}
+        {activeTab === 'dashboard' && <Dashboard data={calculatedMenuData} ingredients={ingredients} />}
         {activeTab === 'simulation' && <Simulation data={calculatedMenuData} />}
         {activeTab === 'menu' && (
           <MenuManager 
