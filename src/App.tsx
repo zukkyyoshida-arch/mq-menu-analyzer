@@ -1,44 +1,123 @@
-import { useState } from 'react'
-import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  ZAxis,
-  ReferenceLine
-} from 'recharts'
+import { useState, useMemo } from 'react'
 import { LayoutDashboard, Utensils, ReceiptText, Settings, TrendingUp } from 'lucide-react'
+import { Dashboard } from './components/Dashboard'
+import { MenuManager } from './components/MenuManager'
+import { SalesManager } from './components/SalesManager'
+import { Ingredient, Menu, SalesRecord, CalculatedMenuData } from './types'
 
-const mockMenuData = [
-  { id: 1, name: '特製ハンバーガー', sales: 450, mq: 350, cost: 450, price: 800 },
-  { id: 2, name: 'チーズバーガー', sales: 600, mq: 250, cost: 500, price: 750 },
-  { id: 3, name: 'フライドポテト', sales: 800, mq: 280, cost: 70, price: 350 },
-  { id: 4, name: 'クラフトコーラ', sales: 300, mq: 400, cost: 100, price: 500 },
-  { id: 5, name: 'オニオンリング', sales: 150, mq: 150, cost: 150, price: 300 },
-  { id: 6, name: '期間限定シェイク', sales: 250, mq: 450, cost: 200, price: 650 },
+// Mock Data
+const initialIngredients: Ingredient[] = [
+  { id: 'i1', name: '特製パティ', unit: '枚', cost: 250 },
+  { id: 'i2', name: 'バンズ', unit: '個', cost: 80 },
+  { id: 'i3', name: 'スライスチーズ', unit: '枚', cost: 40 },
+  { id: 'i4', name: 'レタス', unit: '枚', cost: 20 },
+  { id: 'i5', name: 'トマト', unit: 'スライス', cost: 30 },
+  { id: 'i6', name: 'じゃがいも', unit: '100g', cost: 70 },
+  { id: 'i7', name: 'コーラシロップ', unit: '回', cost: 50 },
+  { id: 'i8', name: '炭酸水', unit: '杯', cost: 10 },
+  { id: 'i9', name: 'タマネギ', unit: '100g', cost: 50 },
+  { id: 'i10', name: 'アイスクリーム', unit: 'スクープ', cost: 100 },
+]
+
+const initialMenus: Menu[] = [
+  { 
+    id: 'm1', name: '特製ハンバーガー', price: 800, 
+    recipe: [
+      { ingredientId: 'i1', amount: 1 },
+      { ingredientId: 'i2', amount: 1 },
+      { ingredientId: 'i4', amount: 1 },
+      { ingredientId: 'i5', amount: 1 }
+    ] 
+  }, // 原価 380, MQ 420
+  { 
+    id: 'm2', name: 'チーズバーガー', price: 750, 
+    recipe: [
+      { ingredientId: 'i1', amount: 1 },
+      { ingredientId: 'i2', amount: 1 },
+      { ingredientId: 'i3', amount: 1 }
+    ] 
+  }, // 原価 370, MQ 380
+  { 
+    id: 'm3', name: 'フライドポテト', price: 350, 
+    recipe: [
+      { ingredientId: 'i6', amount: 1 }
+    ] 
+  }, // 原価 70, MQ 280
+  { 
+    id: 'm4', name: 'クラフトコーラ', price: 500, 
+    recipe: [
+      { ingredientId: 'i7', amount: 1 },
+      { ingredientId: 'i8', amount: 1 }
+    ] 
+  }, // 原価 60, MQ 440
+  { 
+    id: 'm5', name: 'オニオンリング', price: 300, 
+    recipe: [
+      { ingredientId: 'i9', amount: 1 }
+    ] 
+  }, // 原価 50, MQ 250
+  { 
+    id: 'm6', name: '期間限定シェイク', price: 650, 
+    recipe: [
+      { ingredientId: 'i10', amount: 2 }
+    ] 
+  }, // 原価 200, MQ 450
+]
+
+const initialSalesRecords: SalesRecord[] = [
+  { menuId: 'm1', quantity: 450 },
+  { menuId: 'm2', quantity: 600 },
+  { menuId: 'm3', quantity: 800 },
+  { menuId: 'm4', quantity: 300 },
+  { menuId: 'm5', quantity: 150 },
+  { menuId: 'm6', quantity: 250 },
 ]
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  // 平均値の計算（4象限の基準線用）
-  const avgSales = mockMenuData.reduce((sum, item) => sum + item.sales, 0) / mockMenuData.length
-  const avgMQ = mockMenuData.reduce((sum, item) => sum + item.mq, 0) / mockMenuData.length
+  // Global State
+  const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients)
+  const [menus, setMenus] = useState<Menu[]>(initialMenus)
+  const [salesRecords, setSalesRecords] = useState<SalesRecord[]>(initialSalesRecords)
+
+  // メニューから原価・限界利益・販売数を計算して統合データを生成
+  const calculatedMenuData: CalculatedMenuData[] = useMemo(() => {
+    return menus.map(menu => {
+      // 1. 原価計算
+      const cost = menu.recipe.reduce((total, recipeItem) => {
+        const ing = ingredients.find(i => i.id === recipeItem.ingredientId)
+        return total + (ing ? ing.cost * recipeItem.amount : 0)
+      }, 0)
+
+      // 2. 限界利益計算
+      const mq = menu.price - cost
+
+      // 3. 販売数取得
+      const sales = salesRecords.find(r => r.menuId === menu.id)?.quantity || 0
+
+      return {
+        id: menu.id,
+        name: menu.name,
+        price: menu.price,
+        cost,
+        mq,
+        sales
+      }
+    })
+  }, [ingredients, menus, salesRecords])
 
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-50 font-sans">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#1e293b] border-r border-slate-800 flex flex-col">
+      <aside className="w-64 bg-[#1e293b] border-r border-slate-800 flex flex-col z-10 shadow-2xl">
         <div className="p-6">
           <h1 className="text-xl font-bold flex items-center gap-2 text-blue-400">
             <TrendingUp />
             MQ Analyzer
           </h1>
         </div>
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-4 space-y-2 mt-4">
           <NavItem icon={<LayoutDashboard size={20} />} label="ダッシュボード" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <NavItem icon={<Utensils size={20} />} label="メニュー管理" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
           <NavItem icon={<ReceiptText size={20} />} label="販売データ入力" active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
@@ -49,76 +128,25 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8">
-        {activeTab === 'dashboard' && (
-          <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-            <header>
-              <h2 className="text-3xl font-bold tracking-tight">MQ分析ダッシュボード</h2>
-              <p className="text-slate-400 mt-2">各商品の「売れ筋」と「儲かり筋」を可視化し、次の打ち手を導き出します。</p>
-            </header>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <SummaryCard title="総売上" value="¥1,450,000" />
-              <SummaryCard title="総原価" value="¥580,000" />
-              <SummaryCard title="総限界利益 (MQ)" value="¥870,000" highlight />
-              <SummaryCard title="全体原価率" value="40.0%" />
-            </div>
-
-            {/* Matrix Analysis */}
-            <div className="bg-[#1e293b] rounded-xl p-6 border border-slate-800 shadow-xl">
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold mb-1">メニュー別ポートフォリオ (PPM分析)</h3>
-                <p className="text-sm text-slate-400">縦軸: 限界利益(MQ) / 横軸: 販売数量。円の大きさは売上規模を示します。</p>
-              </div>
-              <div className="h-[500px] w-full bg-[#0f172a]/50 rounded-lg p-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" dataKey="sales" name="販売数" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                    <YAxis type="number" dataKey="mq" name="限界利益" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                    <ZAxis type="number" dataKey="price" range={[100, 500]} name="価格" />
-                    <Tooltip
-                      cursor={{ strokeDasharray: '3 3' }}
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
-                      itemStyle={{ color: '#f8fafc' }}
-                    />
-                    <ReferenceLine x={avgSales} stroke="#64748b" strokeDasharray="3 3" label={{ position: 'top', value: '平均販売数', fill: '#64748b', fontSize: 12 }} />
-                    <ReferenceLine y={avgMQ} stroke="#64748b" strokeDasharray="3 3" label={{ position: 'right', value: '平均利益', fill: '#64748b', fontSize: 12 }} />
-                    <Scatter name="Menus" data={mockMenuData} fill="#3b82f6" />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-              
-              {/* Quadrant Explanation */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <QuadrantLegend title="花形 (右上)" desc="よく売れて利益も高い主力商品" color="bg-blue-500/10 text-blue-400 border-blue-500/20" />
-                <QuadrantLegend title="金のなる木 (左上)" desc="数は出ないが利益率が高い商品" color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" />
-                <QuadrantLegend title="問題児 (右下)" desc="よく売れるが利益が少ない商品" color="bg-amber-500/10 text-amber-400 border-amber-500/20" />
-                <QuadrantLegend title="負け犬 (左下)" desc="売れず利益も出ない商品" color="bg-red-500/10 text-red-400 border-red-500/20" />
-              </div>
-            </div>
-          </div>
-        )}
-
+      <main className="flex-1 overflow-y-auto p-8 relative">
+        {/* Decorator background */}
+        <div className="absolute top-0 left-0 w-full h-96 bg-blue-900/10 rounded-full blur-3xl -z-10 pointer-events-none transform -translate-y-1/2"></div>
+        
+        {activeTab === 'dashboard' && <Dashboard data={calculatedMenuData} />}
         {activeTab === 'menu' && (
-          <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
-            <h2 className="text-3xl font-bold mb-6">メニュー・原価管理</h2>
-            <div className="bg-[#1e293b] rounded-xl p-6 border border-slate-800 text-center py-20 text-slate-400">
-              <Utensils className="mx-auto mb-4 opacity-50" size={48} />
-              <p>メニューごとの材料・レシピ登録機能は今後実装予定です。</p>
-            </div>
-          </div>
+          <MenuManager 
+            ingredients={ingredients} 
+            setIngredients={setIngredients} 
+            menus={menus} 
+            setMenus={setMenus} 
+          />
         )}
-
         {activeTab === 'sales' && (
-          <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
-            <h2 className="text-3xl font-bold mb-6">販売データ入力</h2>
-            <div className="bg-[#1e293b] rounded-xl p-6 border border-slate-800 text-center py-20 text-slate-400">
-              <ReceiptText className="mx-auto mb-4 opacity-50" size={48} />
-              <p>日々の販売数入力機能は今後実装予定です。</p>
-            </div>
-          </div>
+          <SalesManager 
+            menus={menus} 
+            salesRecords={salesRecords} 
+            setSalesRecords={setSalesRecords} 
+          />
         )}
       </main>
     </div>
@@ -131,30 +159,12 @@ function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, labe
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
         active 
-          ? 'bg-blue-600/20 text-blue-400 shadow-[inset_4px_0_0_0_rgba(59,130,246,1)]' 
-          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+          ? 'bg-blue-600/20 text-blue-400 shadow-[inset_4px_0_0_0_rgba(59,130,246,1)] font-semibold' 
+          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 font-medium'
       }`}
     >
       {icon}
-      <span className="font-medium text-sm">{label}</span>
+      <span className="text-sm">{label}</span>
     </button>
-  )
-}
-
-function SummaryCard({ title, value, highlight = false }: { title: string, value: string, highlight?: boolean }) {
-  return (
-    <div className={`p-6 rounded-xl border transition-all duration-300 hover:-translate-y-1 ${highlight ? 'bg-blue-900/20 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-[#1e293b] border-slate-800'}`}>
-      <h3 className="text-sm font-medium text-slate-400 mb-2">{title}</h3>
-      <p className={`text-3xl font-bold tracking-tight ${highlight ? 'text-blue-400' : 'text-slate-50'}`}>{value}</p>
-    </div>
-  )
-}
-
-function QuadrantLegend({ title, desc, color }: { title: string, desc: string, color: string }) {
-  return (
-    <div className={`p-4 rounded-lg border ${color}`}>
-      <h4 className="font-bold mb-1 text-sm">{title}</h4>
-      <p className="text-xs opacity-80 leading-relaxed">{desc}</p>
-    </div>
   )
 }
