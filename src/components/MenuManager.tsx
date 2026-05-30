@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import type { Ingredient, Menu, RecipeItem } from '../types'
 import { Plus, Trash2, Sparkles, Loader2, ChevronDown, ChevronUp, Utensils, Save } from 'lucide-react'
-import { generateRecipeWithAI } from '../lib/ai'
+import { generateRecipeWithAI, generateMenuFromLoss } from '../lib/ai'
 
 interface MenuManagerProps {
   ingredients: Ingredient[];
@@ -106,8 +106,6 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
 
     setIsGenerating(true);
     try {
-      // lib/ai.ts の generateMenuFromLoss は GeneratedRecipe & { menuName: string } を返す
-      const { generateMenuFromLoss } = await import('../lib/ai');
       const generated = await generateMenuFromLoss(surplusIngredients, apiKey);
       if (generated) {
         // AIが提案した名前を使用する
