@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Ingredient, Menu, SalesRecord } from '../types'
+import type { Ingredient, Menu, SalesRecord } from '../types'
 import { AlertTriangle, PackageSearch } from 'lucide-react'
 
 interface InventoryManagerProps {

@@ -10,7 +10,7 @@ import {
   ZAxis,
   ReferenceLine
 } from 'recharts'
-import { CalculatedMenuData } from '../types'
+import type { CalculatedMenuData } from '../types'
 import { Sparkles, Loader2, BotMessageSquare } from 'lucide-react'
 import { getBusinessAdvice } from '../lib/ai'
 
@@ -123,7 +123,7 @@ export function Dashboard({ data }: DashboardProps) {
                 cursor={{ strokeDasharray: '3 3' }}
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
                 itemStyle={{ color: '#f8fafc' }}
-                formatter={(value: any, name: string) => [value, name === 'sales' ? '販売数' : name === 'mq' ? '限界利益(¥)' : value]}
+                formatter={(value: any, name: any) => [value, name === 'sales' ? '販売数' : name === 'mq' ? '限界利益(¥)' : value]}
               />
               <ReferenceLine x={avgSales} stroke="#64748b" strokeDasharray="3 3" label={{ position: 'top', value: '平均販売数', fill: '#64748b', fontSize: 12 }} />
               <ReferenceLine y={avgMQ} stroke="#64748b" strokeDasharray="3 3" label={{ position: 'right', value: '平均利益', fill: '#64748b', fontSize: 12 }} />

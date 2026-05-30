@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Ingredient, Menu, RecipeItem } from '../types'
-import { Plus, Trash2, Sparkles, Loader2, ChevronDown, ChevronUp, Save } from 'lucide-react'
+import React, { useState } from 'react'
+import type { Ingredient, Menu, RecipeItem } from '../types'
+import { Plus, Trash2, Sparkles, Loader2, ChevronDown, ChevronUp, Utensils, Save } from 'lucide-react'
 import { generateRecipeWithAI } from '../lib/ai'
 
 interface MenuManagerProps {

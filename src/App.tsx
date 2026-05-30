@@ -6,7 +6,7 @@ import { SalesManager } from './components/SalesManager'
 import { InventoryManager } from './components/InventoryManager'
 import { Simulation } from './components/Simulation'
 import { Settings } from './components/Settings'
-import { Ingredient, Menu, SalesRecord, CalculatedMenuData } from './types'
+import type { Ingredient, Menu, SalesRecord, CalculatedMenuData } from './types'
 
 // Mock Data
 const initialIngredients: Ingredient[] = [

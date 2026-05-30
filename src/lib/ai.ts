@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Ingredient, CalculatedMenuData } from '../types';
+import type { Ingredient, CalculatedMenuData } from '../types';
 
 export interface GeneratedRecipe {
   ingredients: Omit<Ingredient, 'id'>[];

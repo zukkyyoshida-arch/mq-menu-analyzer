@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Menu, SalesRecord } from '../types'
+import type { Menu, SalesRecord } from '../types'
 import { FileUp, Calendar, Trash2 } from 'lucide-react'
 import Papa from 'papaparse'
 

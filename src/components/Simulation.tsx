@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { CalculatedMenuData } from '../types'
+import type { CalculatedMenuData } from '../types'
 import { ArrowRight, Calculator } from 'lucide-react'
 
 interface SimulationProps {
