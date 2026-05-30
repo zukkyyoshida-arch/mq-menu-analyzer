@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
-import { LayoutDashboard, Utensils, ReceiptText, Settings as SettingsIcon, TrendingUp, PackageSearch } from 'lucide-react'
+import { LayoutDashboard, Utensils, ReceiptText, Settings as SettingsIcon, TrendingUp, PackageSearch, Calculator } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { MenuManager } from './components/MenuManager'
 import { SalesManager } from './components/SalesManager'
 import { InventoryManager } from './components/InventoryManager'
+import { Simulation } from './components/Simulation'
 import { Settings } from './components/Settings'
 import { Ingredient, Menu, SalesRecord, CalculatedMenuData } from './types'
 
@@ -66,13 +67,16 @@ const initialMenus: Menu[] = [
   },
 ]
 
+const d = new Date()
+const currentMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+
 const initialSalesRecords: SalesRecord[] = [
-  { menuId: 'm1', quantity: 450 },
-  { menuId: 'm2', quantity: 300 },
-  { menuId: 'm3', quantity: 800 },
-  { menuId: 'm4', quantity: 300 },
-  { menuId: 'm5', quantity: 150 },
-  { menuId: 'm6', quantity: 250 },
+  { menuId: 'm1', quantity: 450, waste: 10, period: currentMonth },
+  { menuId: 'm2', quantity: 300, waste: 5, period: currentMonth },
+  { menuId: 'm3', quantity: 800, waste: 50, period: currentMonth },
+  { menuId: 'm4', quantity: 300, waste: 0, period: currentMonth },
+  { menuId: 'm5', quantity: 150, waste: 20, period: currentMonth },
+  { menuId: 'm6', quantity: 250, waste: 15, period: currentMonth },
 ]
 
 export default function App() {
@@ -83,7 +87,7 @@ export default function App() {
   const [menus, setMenus] = useState<Menu[]>(initialMenus)
   const [salesRecords, setSalesRecords] = useState<SalesRecord[]>(initialSalesRecords)
 
-  // メニューから原価・限界利益・販売数を計算して統合データを生成
+  // メニューから原価・限界利益・販売数・廃棄数を計算して統合データを生成
   const calculatedMenuData: CalculatedMenuData[] = useMemo(() => {
     return menus.map(menu => {
       // 1. 原価計算
@@ -95,8 +99,9 @@ export default function App() {
       // 2. 限界利益計算
       const mq = menu.price - cost
 
-      // 3. 販売数取得
-      const sales = salesRecords.find(r => r.menuId === menu.id)?.quantity || 0
+      // 3. 販売数と廃棄数の取得（全期間の合計として計算するか、今月のみにするか。ここではシンプルに全期間合計）
+      const sales = salesRecords.filter(r => r.menuId === menu.id).reduce((sum, r) => sum + r.quantity, 0)
+      const waste = salesRecords.filter(r => r.menuId === menu.id).reduce((sum, r) => sum + (r.waste || 0), 0)
 
       return {
         id: menu.id,
@@ -104,7 +109,8 @@ export default function App() {
         price: menu.price,
         cost,
         mq,
-        sales
+        sales,
+        waste
       }
     })
   }, [ingredients, menus, salesRecords])
@@ -121,8 +127,9 @@ export default function App() {
         </div>
         <nav className="flex-1 px-4 space-y-2 mt-4">
           <NavItem icon={<LayoutDashboard size={20} />} label="ダッシュボード" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          <NavItem icon={<Calculator size={20} />} label="シミュレーション" active={activeTab === 'simulation'} onClick={() => setActiveTab('simulation')} />
           <NavItem icon={<Utensils size={20} />} label="メニュー管理" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
-          <NavItem icon={<ReceiptText size={20} />} label="販売データ入力" active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
+          <NavItem icon={<ReceiptText size={20} />} label="販売・ロスデータ" active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
           <NavItem icon={<PackageSearch size={20} />} label="在庫管理・発注" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
         </nav>
         <div className="p-4 border-t border-slate-800">
@@ -136,6 +143,7 @@ export default function App() {
         <div className="absolute top-0 left-0 w-full h-96 bg-blue-900/10 rounded-full blur-3xl -z-10 pointer-events-none transform -translate-y-1/2"></div>
         
         {activeTab === 'dashboard' && <Dashboard data={calculatedMenuData} />}
+        {activeTab === 'simulation' && <Simulation data={calculatedMenuData} />}
         {activeTab === 'menu' && (
           <MenuManager 
             ingredients={ingredients} 
