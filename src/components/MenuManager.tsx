@@ -14,7 +14,7 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
   const [activeTab, setActiveTab] = useState<'menus' | 'ingredients'>('menus')
 
   // UI State
-  const [newIngredient, setNewIngredient] = useState<Partial<Ingredient>>({ name: '', unit: '', cost: 0 })
+  const [newIngredient, setNewIngredient] = useState<Partial<Ingredient>>({ name: '', supplierName: '', unit: '', cost: 0 })
   const [newMenu, setNewMenu] = useState<Partial<Menu>>({ name: '', price: 0, recipe: [] })
   const [isGenerating, setIsGenerating] = useState(false)
   const [aiMenuName, setAiMenuName] = useState('')
@@ -23,16 +23,20 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
   // レシピ編集中の一時ステート
   const [editingRecipe, setEditingRecipe] = useState<RecipeItem[]>([])
 
-  const handleAddIngredient = () => {
+  const handleAddIngredient = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!newIngredient.name || !newIngredient.unit) return;
     const item: Ingredient = {
       id: Math.random().toString(36).substring(2, 9),
       name: newIngredient.name,
+      supplierName: newIngredient.supplierName,
       unit: newIngredient.unit,
-      cost: Number(newIngredient.cost) || 0
+      cost: Number(newIngredient.cost) || 0,
+      stock: 0,
+      lowStockThreshold: 0
     }
     setIngredients([...ingredients, item])
-    setNewIngredient({ name: '', unit: '', cost: 0 })
+    setNewIngredient({ name: '', supplierName: '', unit: '', cost: 0 })
   }
 
   const handleDeleteIngredient = (id: string) => {
@@ -195,7 +199,7 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
                 <input
                   type="text"
                   placeholder="業者発注名 (任意 / 例: トマト Lサイズ)"
-                  value={newIngredient.supplierName}
+                  value={newIngredient.supplierName || ''}
                   onChange={(e) => setNewIngredient({...newIngredient, supplierName: e.target.value})}
                   className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
