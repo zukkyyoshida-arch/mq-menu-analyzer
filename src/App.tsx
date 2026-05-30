@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
-import { LayoutDashboard, Utensils, ReceiptText, Settings, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, Utensils, ReceiptText, Settings as SettingsIcon, TrendingUp } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { MenuManager } from './components/MenuManager'
 import { SalesManager } from './components/SalesManager'
+import { Settings } from './components/Settings'
 import { Ingredient, Menu, SalesRecord, CalculatedMenuData } from './types'
 
 // Mock Data
@@ -28,7 +29,7 @@ const initialMenus: Menu[] = [
       { ingredientId: 'i4', amount: 1 },
       { ingredientId: 'i5', amount: 1 }
     ] 
-  }, // 原価 380, MQ 420
+  },
   { 
     id: 'm2', name: 'チーズバーガー', price: 750, 
     recipe: [
@@ -36,32 +37,32 @@ const initialMenus: Menu[] = [
       { ingredientId: 'i2', amount: 1 },
       { ingredientId: 'i3', amount: 1 }
     ] 
-  }, // 原価 370, MQ 380
+  },
   { 
     id: 'm3', name: 'フライドポテト', price: 350, 
     recipe: [
       { ingredientId: 'i6', amount: 1 }
     ] 
-  }, // 原価 70, MQ 280
+  },
   { 
     id: 'm4', name: 'クラフトコーラ', price: 500, 
     recipe: [
       { ingredientId: 'i7', amount: 1 },
       { ingredientId: 'i8', amount: 1 }
     ] 
-  }, // 原価 60, MQ 440
+  },
   { 
     id: 'm5', name: 'オニオンリング', price: 300, 
     recipe: [
       { ingredientId: 'i9', amount: 1 }
     ] 
-  }, // 原価 50, MQ 250
+  },
   { 
     id: 'm6', name: '期間限定シェイク', price: 650, 
     recipe: [
       { ingredientId: 'i10', amount: 2 }
     ] 
-  }, // 原価 200, MQ 450
+  },
 ]
 
 const initialSalesRecords: SalesRecord[] = [
@@ -123,7 +124,7 @@ export default function App() {
           <NavItem icon={<ReceiptText size={20} />} label="販売データ入力" active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
         </nav>
         <div className="p-4 border-t border-slate-800">
-          <NavItem icon={<Settings size={20} />} label="設定" active={false} onClick={() => {}} />
+          <NavItem icon={<SettingsIcon size={20} />} label="設定" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
       </aside>
 
@@ -148,6 +149,7 @@ export default function App() {
             setSalesRecords={setSalesRecords} 
           />
         )}
+        {activeTab === 'settings' && <Settings />}
       </main>
     </div>
   )
