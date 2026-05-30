@@ -1,23 +1,24 @@
 import { useState, useMemo } from 'react'
-import { LayoutDashboard, Utensils, ReceiptText, Settings as SettingsIcon, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, Utensils, ReceiptText, Settings as SettingsIcon, TrendingUp, PackageSearch } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { MenuManager } from './components/MenuManager'
 import { SalesManager } from './components/SalesManager'
+import { InventoryManager } from './components/InventoryManager'
 import { Settings } from './components/Settings'
 import { Ingredient, Menu, SalesRecord, CalculatedMenuData } from './types'
 
 // Mock Data
 const initialIngredients: Ingredient[] = [
-  { id: 'i1', name: '特製パティ', unit: '枚', cost: 250 },
-  { id: 'i2', name: 'バンズ', unit: '個', cost: 80 },
-  { id: 'i3', name: 'スライスチーズ', unit: '枚', cost: 40 },
-  { id: 'i4', name: 'レタス', unit: '枚', cost: 20 },
-  { id: 'i5', name: 'トマト', unit: 'スライス', cost: 30 },
-  { id: 'i6', name: 'じゃがいも', unit: '100g', cost: 70 },
-  { id: 'i7', name: 'コーラシロップ', unit: '回', cost: 50 },
-  { id: 'i8', name: '炭酸水', unit: '杯', cost: 10 },
-  { id: 'i9', name: 'タマネギ', unit: '100g', cost: 50 },
-  { id: 'i10', name: 'アイスクリーム', unit: 'スクープ', cost: 100 },
+  { id: 'i1', name: '特製パティ', unit: '枚', cost: 250, stock: 1000, lowStockThreshold: 200 },
+  { id: 'i2', name: 'バンズ', unit: '個', cost: 80, stock: 800, lowStockThreshold: 100 },
+  { id: 'i3', name: 'スライスチーズ', unit: '枚', cost: 40, stock: 500, lowStockThreshold: 50 },
+  { id: 'i4', name: 'レタス', unit: '枚', cost: 20, stock: 300, lowStockThreshold: 50 },
+  { id: 'i5', name: 'トマト', unit: 'スライス', cost: 30, stock: 400, lowStockThreshold: 100 },
+  { id: 'i6', name: 'じゃがいも', unit: '100g', cost: 70, stock: 2000, lowStockThreshold: 500 },
+  { id: 'i7', name: 'コーラシロップ', unit: '回', cost: 50, stock: 150, lowStockThreshold: 20 },
+  { id: 'i8', name: '炭酸水', unit: '杯', cost: 10, stock: 500, lowStockThreshold: 100 },
+  { id: 'i9', name: 'タマネギ', unit: '100g', cost: 50, stock: 300, lowStockThreshold: 50 },
+  { id: 'i10', name: 'アイスクリーム', unit: 'スクープ', cost: 100, stock: 100, lowStockThreshold: 20 },
 ]
 
 const initialMenus: Menu[] = [
@@ -41,7 +42,7 @@ const initialMenus: Menu[] = [
   { 
     id: 'm3', name: 'フライドポテト', price: 350, 
     recipe: [
-      { ingredientId: 'i6', amount: 1 }
+      { ingredientId: 'i6', amount: 1.5 }
     ] 
   },
   { 
@@ -54,7 +55,7 @@ const initialMenus: Menu[] = [
   { 
     id: 'm5', name: 'オニオンリング', price: 300, 
     recipe: [
-      { ingredientId: 'i9', amount: 1 }
+      { ingredientId: 'i9', amount: 1.2 }
     ] 
   },
   { 
@@ -67,7 +68,7 @@ const initialMenus: Menu[] = [
 
 const initialSalesRecords: SalesRecord[] = [
   { menuId: 'm1', quantity: 450 },
-  { menuId: 'm2', quantity: 600 },
+  { menuId: 'm2', quantity: 300 },
   { menuId: 'm3', quantity: 800 },
   { menuId: 'm4', quantity: 300 },
   { menuId: 'm5', quantity: 150 },
@@ -122,6 +123,7 @@ export default function App() {
           <NavItem icon={<LayoutDashboard size={20} />} label="ダッシュボード" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <NavItem icon={<Utensils size={20} />} label="メニュー管理" active={activeTab === 'menu'} onClick={() => setActiveTab('menu')} />
           <NavItem icon={<ReceiptText size={20} />} label="販売データ入力" active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} />
+          <NavItem icon={<PackageSearch size={20} />} label="在庫管理・発注" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
         </nav>
         <div className="p-4 border-t border-slate-800">
           <NavItem icon={<SettingsIcon size={20} />} label="設定" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
@@ -147,6 +149,14 @@ export default function App() {
             menus={menus} 
             salesRecords={salesRecords} 
             setSalesRecords={setSalesRecords} 
+          />
+        )}
+        {activeTab === 'inventory' && (
+          <InventoryManager 
+            ingredients={ingredients} 
+            setIngredients={setIngredients} 
+            menus={menus} 
+            salesRecords={salesRecords} 
           />
         )}
         {activeTab === 'settings' && <Settings />}

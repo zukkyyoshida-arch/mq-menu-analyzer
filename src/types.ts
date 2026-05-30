@@ -3,6 +3,8 @@ export interface Ingredient {
   name: string;
   unit: string;
   cost: number;
+  stock?: number; // 現在の実在庫数
+  lowStockThreshold?: number; // 発注点（安全在庫）
 }
 
 export interface RecipeItem {
