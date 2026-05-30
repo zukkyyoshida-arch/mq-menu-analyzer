@@ -181,24 +181,53 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
       {activeTab === 'ingredients' && (
         <div className="bg-[#1e293b] rounded-xl border border-slate-800 overflow-hidden shadow-xl">
           <div className="p-6 border-b border-slate-800 bg-slate-900/50">
-            <h3 className="text-lg font-semibold mb-4">新規材料の追加</h3>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-xs text-slate-400 mb-1">材料名</label>
-                <input type="text" value={newIngredient.name} onChange={e => setNewIngredient({...newIngredient, name: e.target.value})} className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="例: 牛ひき肉" />
+            <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">新規材料の追加</h3>
+            <form onSubmit={handleAddIngredient} className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full flex flex-col gap-3">
+                <input
+                  type="text"
+                  placeholder="現場の呼び名 (例: トマト)"
+                  value={newIngredient.name}
+                  onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="業者発注名 (任意 / 例: トマト Lサイズ)"
+                  value={newIngredient.supplierName}
+                  onChange={(e) => setNewIngredient({...newIngredient, supplierName: e.target.value})}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
               </div>
-              <div className="w-32">
-                <label className="block text-xs text-slate-400 mb-1">単位</label>
-                <input type="text" value={newIngredient.unit} onChange={e => setNewIngredient({...newIngredient, unit: e.target.value})} className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="例: 100g" />
+              <div className="flex-1 w-full">
+                <input
+                  type="text"
+                  placeholder="単位 (例: 個, g, ml)"
+                  value={newIngredient.unit}
+                  onChange={(e) => setNewIngredient({...newIngredient, unit: e.target.value})}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  required
+                />
               </div>
-              <div className="w-32">
-                <label className="block text-xs text-slate-400 mb-1">原価 (¥)</label>
-                <input type="number" value={newIngredient.cost || ''} onChange={e => setNewIngredient({...newIngredient, cost: Number(e.target.value)})} className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="0" />
+              <div className="flex-1 w-full">
+                <input
+                  type="number"
+                  placeholder="仕入原価 (円)"
+                  value={newIngredient.cost || ''}
+                  onChange={(e) => setNewIngredient({...newIngredient, cost: Number(e.target.value)})}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  required
+                  min="0"
+                />
               </div>
-              <button onClick={handleAddIngredient} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                <Plus size={16} /> 追加
+              <button 
+                type="submit"
+                className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus size={18} /> 追加
               </button>
-            </div>
+            </form>
           </div>
           
           <table className="w-full text-left text-sm">
@@ -213,7 +242,15 @@ export function MenuManager({ ingredients, setIngredients, menus, setMenus }: Me
             <tbody className="divide-y divide-slate-800">
               {ingredients.map(ing => (
                 <tr key={ing.id} className="hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4">{ing.name}</td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-slate-200">{ing.name}</div>
+                    {ing.supplierName && (
+                      <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                        <span className="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">発注名</span>
+                        {ing.supplierName}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-slate-400">{ing.unit}</td>
                   <td className="px-6 py-4 font-medium">¥{ing.cost.toLocaleString()}</td>
                   <td className="px-6 py-4">

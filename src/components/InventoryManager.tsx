@@ -99,7 +99,13 @@ export function InventoryManager({ ingredients, setIngredients, menus, salesReco
                 <tr key={ing.id} className={`hover:bg-slate-800/30 transition-colors ${isLowStock ? 'bg-red-500/5' : ''}`}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-200">{ing.name}</div>
-                    <div className="text-xs text-slate-500">{ing.unit}</div>
+                    {ing.supplierName && (
+                      <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                        <span className="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">発注名</span>
+                        {ing.supplierName}
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-500 mt-1">{ing.unit}</div>
                   </td>
                   <td className="px-6 py-4">
                     <input

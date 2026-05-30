@@ -1,6 +1,7 @@
 export interface Ingredient {
   id: string;
-  name: string;
+  name: string; // 現場での呼び名（レシピ用）
+  supplierName?: string; // 業者向けの発注名
   unit: string;
   cost: number;
   stock?: number; // 現在の実在庫数
